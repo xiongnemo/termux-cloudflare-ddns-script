@@ -16,7 +16,8 @@ def verify_token(header: dict) -> bool:
     if r.status_code != 200:
         print(
             "----------------------------------------------------------------\n"
-            "ERROR: Invalid CloudFlare Credentials - " + str(r.status_code) + "\n"
+            "ERROR: Invalid CloudFlare Credentials - " +
+            str(r.status_code) + "\n"
             "----------------------------------------------------------------\n"
             "Make sure the API_KEY is correct. You can\n"
             "get your scoped CloudFlare API Token here:\n"
@@ -53,7 +54,8 @@ def verify_dns_record(header: dict, cf_zone_id: str, dns_name: str, zone_name: s
         print("Found existing record for " + dns_name + ".")
         return result['result'][0]['id']
     else:
-        print(RRTYPE + " DNS record for " + dns_name + " was not found in " + zone_name + " zone.")
+        print(RRTYPE + " DNS record for " + dns_name +
+              " was not found in " + zone_name + " zone.")
         return ""
 
 
@@ -65,7 +67,8 @@ def create_dns_record(header: dict, cf_zone_id: str, dns_name: str, ip_address: 
         "proxied": False,
         "ttl": 1
     }
-    r = requests.post(CF_API + "/zones/" + cf_zone_id + "/dns_records", data=post_body, headers=header)
+    r = requests.post(CF_API + "/zones/" + cf_zone_id +
+                      "/dns_records", data=post_body, headers=header)
     result = json.loads(r.text)
     return result['result']['id']
 
@@ -75,7 +78,8 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
         params = {'name': dns_name, 'match': 'all', 'type': ip_address_type}
         dns_records = cf.zones.dns_records.get(zone_id, params=params)
     except CloudFlare.exceptions.CloudFlareAPIError as e:
-        print('/zones/dns_records %s - %d %s - api call failed' % (dns_name, e, e))
+        print('/zones/dns_records %s - %d %s - api call failed' %
+              (dns_name, e, e))
         return
 
     updated = False
@@ -92,7 +96,8 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
         if ip_address_type != old_ip_address_type:
             # only update the correct address type (A or AAAA)
             # we don't see this becuase of the search params above
-            print('IGNORED: %s %s ; wrong address family' % (dns_name, old_ip_address))
+            print('IGNORED: %s %s ; wrong address family' %
+                  (dns_name, old_ip_address))
             continue
 
         if ip_address == old_ip_address:
@@ -112,9 +117,11 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
             'proxied': proxied_state
         }
         try:
-            dns_record = cf.zones.dns_records.put(zone_id, dns_record_id, data=dns_record)
+            dns_record = cf.zones.dns_records.put(
+                zone_id, dns_record_id, data=dns_record)
         except CloudFlare.exceptions.CloudFlareAPIError as e:
-            print('/zones.dns_records.put %s - %d %s - api call failed' % (dns_name, e, e))
+            print('/zones.dns_records.put %s - %d %s - api call failed' %
+                  (dns_name, e, e))
             return
         print('UPDATED: %s %s -> %s' % (dns_name, old_ip_address, ip_address))
         updated = True
@@ -131,14 +138,16 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
     try:
         dns_record = cf.zones.dns_records.post(zone_id, data=dns_record)
     except CloudFlare.exceptions.CloudFlareAPIError as e:
-        print('/zones.dns_records.post %s - %d %s - api call failed' % (dns_name, e, e))
+        print('/zones.dns_records.post %s - %d %s - api call failed' %
+              (dns_name, e, e))
         return
     print('CREATED: %s %s' % (dns_name, ip_address))
 
 
 # This function gets IPv6 address using dig method.
 def get_ipv6_address() -> str:
-    ipv6_status = os.system("dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare")
+    ipv6_status = os.system(
+        "dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare")
     if ipv6_status:
         print("This device don't have working IPv6 address(es)!")
         return ""
@@ -161,7 +170,8 @@ def main(argv):
     subdomain_name = ""
 
     try:
-        opts, args = getopt.getopt(argv, "ha:z:s:", ["help", "API_KEY=", "ZONE=", "SUBDOMAIN="])
+        opts, args = getopt.getopt(
+            argv, "ha:z:s:", ["help", "API_KEY=", "ZONE=", "SUBDOMAIN="])
     except getopt.GetoptError:
         show_help()
         exit(2)
@@ -202,18 +212,21 @@ def main(argv):
     cf_zone_id = verify_zone(header, zone_name)
     if cf_zone_id == "":
         exit(5)
-    cf_dns_record_id = verify_dns_record(header, cf_zone_id, cf_dns_record_name, zone_name)
+    cf_dns_record_id = verify_dns_record(
+        header, cf_zone_id, cf_dns_record_name, zone_name)
     if cf_dns_record_id == "":
         print("We will add new record for this name.")
     cf = CloudFlare.CloudFlare(token=api_key)
-    do_dns_update(cf, zone_name, cf_zone_id, cf_dns_record_name, ipv6_address_string, RRTYPE)
+    do_dns_update(cf, zone_name, cf_zone_id, cf_dns_record_name,
+                  ipv6_address_string, RRTYPE)
     while True:
         time.sleep(50)
         ipv6_address_string = get_ipv6_address()
         if ipv6_address_string == "":
             continue
         else:
-            do_dns_update(cf, zone_name, cf_zone_id, cf_dns_record_name, ipv6_address_string, RRTYPE)
+            do_dns_update(cf, zone_name, cf_zone_id,
+                          cf_dns_record_name, ipv6_address_string, RRTYPE)
     exit(0)
 
 
