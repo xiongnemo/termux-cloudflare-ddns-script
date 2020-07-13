@@ -1,10 +1,12 @@
 #!/data/data/com.termux/files/usr/bin/python
 import os
+import subprocess
 import sys
 import getopt
 import requests
 import json
 import time
+import platform
 import CloudFlare
 
 CF_API = "https://api.cloudflare.com/client/v4"
@@ -146,15 +148,24 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
 
 # This function gets IPv6 address using dig method.
 def get_ipv6_address() -> str:
-    ipv6_status = os.system(
-        "dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare")
-    if ipv6_status:
+    process = subprocess.Popen(['dig', '+short', '@2606:4700:4700::1111',
+                                '-6', 'ch', 'txt', 'whoami.cloudflare'], stdout=subprocess.PIPE)
+    while process.poll() == None:
+        pass
+    if process.poll():
         print("This device don't have working IPv6 address(es)!")
         return ""
-    command = """dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare | tr -d '"'"""
-    temp_ipv6_address_string = os.popen(command).read()
-    temp_ipv6_address_string = temp_ipv6_address_string[:-1]
-    print("Your public IPv6 address is: " + temp_ipv6_address_string)
+    stdout = process.communicate()[0]
+    temp_ipv6_address_string = stdout.decode().strip('"')[:-1]
+    # ipv6_status = os.system(
+    #     "dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare")
+    # if ipv6_status:
+    #     print("This device don't have working IPv6 address(es)!")
+    #     return ""
+    # command = """dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare | tr -d '"'"""
+    # temp_ipv6_address_string = os.popen(command).read()
+    # temp_ipv6_address_string = temp_ipv6_address_string[:-1]
+    # print("Your public IPv6 address is: " + temp_ipv6_address_string)
     return temp_ipv6_address_string
 
 
@@ -168,6 +179,10 @@ def main(argv):
     api_key = ""
     zone_name = ""
     subdomain_name = ""
+
+    if platform.system() == "Windows":
+        print("Unfortunately, we don't support Windows.")
+        exit(1)
 
     try:
         opts, args = getopt.getopt(
