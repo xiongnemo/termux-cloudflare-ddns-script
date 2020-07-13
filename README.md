@@ -1,5 +1,7 @@
 # termux-cloudflare-ddns-script
 
+[![CodeFactor](https://www.codefactor.io/repository/github/xiongnemo/termux-cloudflare-ddns-script/badge)](https://www.codefactor.io/repository/github/xiongnemo/termux-cloudflare-ddns-script)
+
 A script using Cloudflare as a DDNS provider, for use with Python 3 on Termux. Only supports IPv6.
 
 ## Prerequisites
