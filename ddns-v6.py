@@ -150,13 +150,13 @@ def do_dns_update(cf, zone_name, zone_id, dns_name, ip_address, ip_address_type)
 def get_ipv6_address() -> str:
     process = subprocess.Popen(['dig', '+short', '@2606:4700:4700::1111',
                                 '-6', 'ch', 'txt', 'whoami.cloudflare'], stdout=subprocess.PIPE)
-    while process.poll() == None:
+    while process.poll() is None:
         pass
     if process.poll():
         print("This device don't have working IPv6 address(es)!")
         return ""
     stdout = process.communicate()[0]
-    temp_ipv6_address_string = stdout.decode().strip('"')[:-1]
+    temp_ipv6_address_string = stdout.decode().strip('"')[:-2]
     # ipv6_status = os.system(
     #     "dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare")
     # if ipv6_status:
@@ -165,7 +165,7 @@ def get_ipv6_address() -> str:
     # command = """dig +short @2606:4700:4700::1111 -6 ch txt whoami.cloudflare | tr -d '"'"""
     # temp_ipv6_address_string = os.popen(command).read()
     # temp_ipv6_address_string = temp_ipv6_address_string[:-1]
-    # print("Your public IPv6 address is: " + temp_ipv6_address_string)
+    print("Your public IPv6 address is: " + temp_ipv6_address_string)
     return temp_ipv6_address_string
 
 
