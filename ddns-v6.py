@@ -35,17 +35,16 @@ def verify_zone(header: dict, zone_name: str) -> str:
     result = json.loads(r.text)
     if result['result']:
         return result['result'][0]['id']
-    else:
-        print(
-            "----------------------------------------------------------------\n"
-            "ERROR: Zone for " + zone_name + " was not found in your CloudFlare Account\n"
-                                             "----------------------------------------------------------------\n"
-                                             "Make sure the ZONE variable is correct and the domain exists\n"
-                                             "in your CloudFlare account. You can add a new domain here:\n"
-                                             "https://www.cloudflare.com/a/add-site\n"
-                                             "----------------------------------------------------------------\n"
-        )
-        return ""
+    print(
+        "----------------------------------------------------------------\n"
+        "ERROR: Zone for " + zone_name + " was not found in your CloudFlare Account\n"
+        "----------------------------------------------------------------\n"
+        "Make sure the ZONE variable is correct and the domain exists\n"
+        "in your CloudFlare account. You can add a new domain here:\n"
+        "https://www.cloudflare.com/a/add-site\n"
+        "----------------------------------------------------------------\n"
+    )
+    return ""
 
 
 def verify_dns_record(header: dict, cf_zone_id: str, dns_name: str, zone_name: str) -> str:
