@@ -12,6 +12,11 @@ import CloudFlare
 CF_API = "https://api.cloudflare.com/client/v4"
 RRTYPE = "AAAA"
 
+header = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": "Bearer "
+    }
 
 def verify_token(header: dict) -> bool:
     r = requests.get(CF_API + "/user/tokens/verify", headers=header)
@@ -54,10 +59,9 @@ def verify_dns_record(header: dict, cf_zone_id: str, dns_name: str, zone_name: s
     if result['result']:
         print("Found existing record for " + dns_name + ".")
         return result['result'][0]['id']
-    else:
-        print(RRTYPE + " DNS record for " + dns_name +
-              " was not found in " + zone_name + " zone.")
-        return ""
+    print(RRTYPE + " DNS record for " + dns_name +
+          " was not found in " + zone_name + " zone.")
+    return ""
 
 
 def create_dns_record(header: dict, cf_zone_id: str, dns_name: str, ip_address: str) -> str:
@@ -174,14 +178,45 @@ def show_help():
     print('   or: ddns-v6.py --API_KEY=<Cloudflare API Key> --ZONE=<zone/domain name> --SUBDOMAIN=<subdomain name>')
 
 
+def check_availability() -> bool:
+    if platform.system() == "Windows":
+        print("Unfortunately, we don't support Windows.")
+        exit(1)
+
+    test_process = subprocess.Popen(['dig'], stdout=subprocess.PIPE)
+    while test_process.poll() is None:
+        pass
+    if test_process.poll():
+        print("This device don't have working dig!")
+        exit(3)
+
+def init_and_update(api_key: str, zone_name: str, subdomain_name: str, ipv6_address_string: str) -> [str, str, CloudFlare.CloudFlare]:
+    print('Your API_KEY is：' + api_key)
+    print('Desired zone name is：' + zone_name)
+    print('Desired subdomain name is：' + subdomain_name)
+    cf_dns_record_name = subdomain_name + '.' + zone_name
+    print('Expect to update AAAA record for: ' + cf_dns_record_name)
+
+    header["Authorization"] = "Bearer " + api_key
+
+    if not verify_token(header):
+        exit(4)
+    cf_zone_id = verify_zone(header, zone_name)
+    if cf_zone_id == "":
+        exit(5)
+    cf_dns_record_id = verify_dns_record(
+        header, cf_zone_id, cf_dns_record_name, zone_name)
+    if cf_dns_record_id == "":
+        print("We will add new record for this name.")
+    cf = CloudFlare.CloudFlare(token=api_key)
+    do_dns_update(cf, zone_name, cf_zone_id, cf_dns_record_name,
+                  ipv6_address_string, RRTYPE)
+    return cf_zone_id, cf_dns_record_name, cf
+
 def main(argv):
     api_key = ""
     zone_name = ""
     subdomain_name = ""
-
-    if platform.system() == "Windows":
-        print("Unfortunately, we don't support Windows.")
-        exit(1)
 
     try:
         opts, args = getopt.getopt(
@@ -209,30 +244,8 @@ def main(argv):
     if ipv6_address_string == "":
         exit(1)
 
-    print('Your API_KEY is：' + api_key)
-    print('Desired zone name is：' + zone_name)
-    print('Desired subdomain name is：' + subdomain_name)
-    cf_dns_record_name = subdomain_name + '.' + zone_name
-    print('Expect to update AAAA record for: ' + cf_dns_record_name)
-
-    header = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + api_key
-    }
-
-    if not verify_token(header):
-        exit(4)
-    cf_zone_id = verify_zone(header, zone_name)
-    if cf_zone_id == "":
-        exit(5)
-    cf_dns_record_id = verify_dns_record(
-        header, cf_zone_id, cf_dns_record_name, zone_name)
-    if cf_dns_record_id == "":
-        print("We will add new record for this name.")
-    cf = CloudFlare.CloudFlare(token=api_key)
-    do_dns_update(cf, zone_name, cf_zone_id, cf_dns_record_name,
-                  ipv6_address_string, RRTYPE)
+    cf_zone_id, cf_dns_record_name, cf = init_and_update(api_key, zone_name, subdomain_name, ipv6_address_string)
+    
     while True:
         time.sleep(50)
         ipv6_address_string = get_ipv6_address()
